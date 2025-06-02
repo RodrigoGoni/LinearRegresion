@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-def perform_eda(X, y, output_dir):
+def perform_eda(X, y, output_dir, name=''):
     """
     Performs exploratory data analysis, including correlation analysis
     and histograms, and saves the plots.
@@ -26,14 +26,15 @@ def perform_eda(X, y, output_dir):
     plt.ylabel('Atributos')
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "correlation.jpg"))
+    plt.savefig(os.path.join(output_dir, f"{name}_correlation.jpg"))
     plt.close()
     print(
-        f"Correlation plot saved to {os.path.join(output_dir, 'correlation.jpg')}")
+        f"Correlation plot saved to {os.path.join(output_dir, '_correlation.jpg')}")
 
     print("\n--- Histograms of Features ---")
     X.hist(bins=50, figsize=(20, 15))
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "histograms.jpg"))
+    plt.savefig(os.path.join(output_dir, f"{name}_histograms.jpg"))
     plt.close()
-    print(f"Histograms saved to {os.path.join(output_dir, 'histograms.jpg')}")
+    print(
+        f"Histograms saved to {os.path.join(output_dir,'_histograms.jpg')}")

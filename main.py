@@ -3,6 +3,7 @@ from linear_regression.data_loader import load_housing_data
 from linear_regression.data_analyzer import perform_eda
 from linear_regression.model_trainer import train_linear_regression, train_ridge_regression
 from linear_regression.model_evaluator import evaluate_model
+from linear_regression.data_normalizer import normalize_data
 from linear_regression.visualizer import (
     plot_predictions_vs_actual,
     plot_residuals_histogram,
@@ -86,6 +87,68 @@ def main():
     print("Generating Ridge Regression plots...")
     plot_ridge_mse_vs_alpha(cv_results, best_alpha, ridge_plots_dir)
     print(f"Ridge Regression plots saved in '{ridge_plots_dir}'.")
+    # --- Normalization Step ---
+    print("Normalizing data (X_train and X_test)...")
+    X_train_scaled, X_test_scaled, scaler = normalize_data(X_train, X_test)
+    print("Data normalization completed.\n")
+
+    print("Performing Exploratory Data Analysis normalized...")
+    perform_eda(X_train_scaled, y, output_base_dir, name='Normalized')
+    print("EDA completed and plots saved.\n")
+
+    # --- Linear Regression (with normalized data) ---
+    print("Training Linear Regression model with NORMALIZED data...")
+    linear_model, y_pred_train_lr, y_pred_test_lr = train_linear_regression(
+        X_train_scaled, y_train, X_test_scaled
+    )
+    print("Linear Regression model trained.\n")
+
+    print("Evaluating Linear Regression model on training set (NORMALIZED data)...")
+    evaluate_model(y_train, y_pred_train_lr,
+                   "Linear Regression (Training - Normalized)")
+    print("\nEvaluating Linear Regression model on test set (NORMALIZED data)...")
+    evaluate_model(y_test, y_pred_test_lr,
+                   "Linear Regression (Test - Normalized)")
+    print()
+
+    print("Generating Linear Regression plots (NORMALIZED data)...")
+    plot_predictions_vs_actual(y_train, y_pred_train_lr, "Regresión Lineal (Normalizada): Predicciones vs. Valores Reales (Entrenamiento)",
+                               os.path.join(regression_plots_dir, 'predicciones_vs_reales_train_normalized.png'))
+    plot_residuals_histogram(y_train, y_pred_train_lr, "Histograma de Residuos (Entrenamiento - Normalizada)",
+                             os.path.join(regression_plots_dir, 'histograma_residuos_train_normalized.png'))
+    plot_residuals_vs_predicted(y_pred_train_lr, y_train - y_pred_train_lr, "Residuos vs. Valores Predichos (Entrenamiento - Normalizada)",
+                                os.path.join(regression_plots_dir, 'residuos_vs_predichos_train_normalized.png'))
+
+    plot_predictions_vs_actual(y_test, y_pred_test_lr, "Regresión Lineal (Normalizada): Predicciones vs. Valores Reales (Test)",
+                               os.path.join(regression_plots_dir, 'predicciones_vs_reales_test_normalized.png'))
+    plot_residuals_histogram(y_test, y_pred_test_lr, "Histograma de Residuos (Test - Normalizada)",
+                             os.path.join(regression_plots_dir, 'histograma_residuos_test_normalized.png'))
+    plot_residuals_vs_predicted(y_pred_test_lr, y_test - y_pred_test_lr, "Residuos vs. Valores Predichos (Test - Normalizada)",
+                                os.path.join(regression_plots_dir, 'residuos_vs_predichos_test_normalized.png'))
+    print(
+        f"Linear Regression plots (normalized data) saved in '{regression_plots_dir}'.\n")
+
+    # --- Ridge Regression (with normalized data) ---
+    print("Training Ridge Regression model with GridSearchCV (NORMALIZED data)...")
+    best_alpha, best_ridge_model, cv_results = train_ridge_regression(
+        X_train_scaled, y_train
+    )
+    print(f"Best alpha found for Ridge (normalized data): {best_alpha:.4f}\n")
+
+    print("Evaluating Ridge Regression model on training set (NORMALIZED data)...")
+    y_pred_train_ridge = best_ridge_model.predict(X_train_scaled)
+    evaluate_model(y_train, y_pred_train_ridge,
+                   "Ridge Regression (Training - Normalized)")
+    print("\nEvaluating Ridge Regression model on test set (NORMALIZED data)...")
+    y_pred_test_ridge = best_ridge_model.predict(X_test_scaled)
+    evaluate_model(y_test, y_pred_test_ridge,
+                   "Ridge Regression (Test - Normalized)")
+    print()
+
+    print("Generating Ridge Regression plots (NORMALIZED data)...")
+    plot_ridge_mse_vs_alpha(cv_results, best_alpha, ridge_plots_dir)
+    print(
+        f"Ridge Regression plots (normalized data) saved in '{ridge_plots_dir}'.")
 
 
 if __name__ == "__main__":
