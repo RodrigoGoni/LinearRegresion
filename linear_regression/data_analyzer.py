@@ -1,81 +1,124 @@
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
-
-
-def perform_eda(data_df, target_series, output_plot_dir, eda_name_suffix=""): # NEW SIGNATURE
+import math
+ 
+def perform_eda(data_df, target_series, output_plot_dir, eda_name_suffix=""):
     """
-    Performs Exploratory Data Analysis and saves plots.
+    Performs Exploratory Data Analysis (EDA) and saves consolidated plots.
+
+    This revised function creates a single figure for all feature histograms and 
+    a single figure for all feature-vs-target scatter plots, instead of one file per plot.
 
     Args:
         data_df (pd.DataFrame): DataFrame containing the features.
         target_series (pd.Series): Series containing the target variable.
-        output_plot_dir (str): Directory to save the generated plots.
-        eda_name_suffix (str, optional): Suffix to append to filenames 
-                                         to distinguish EDA plots (e.g., "Raw", "Normalized").
-                                         Defaults to "".
+        output_plot_dir (str): Directory where the generated plots will be saved.
+        eda_name_suffix (str, optional): Suffix for filenames to distinguish EDA runs
+                                         (e.g., "Raw", "Standard_Scaled"). Defaults to "".
     """
-    print(f"  Starting EDA for: {eda_name_suffix if eda_name_suffix else 'dataset'}")
-
-    # Ensure output directory exists (though main.py should have created it)
+    print(f"  Iniciando EDA para: {eda_name_suffix if eda_name_suffix else 'el dataset'}")
     os.makedirs(output_plot_dir, exist_ok=True)
 
-    # Example 1: Correlation Matrix of features
+    # Helper function to create consistent filenames and titles
+    def get_names(base_name, suffix):
+        title = base_name.replace('_', ' ').title()
+        filename = f"{base_name.lower()}"
+        if suffix:
+            title += f" ({suffix})"
+            filename += f"_{suffix}"
+        return title, f"{filename}.png"
+
+    # 1. Correlation Matrix (remains a single plot)
     if not data_df.empty:
-        plt.figure(figsize=(12, 10))
+        plt.figure(figsize=(16, 12))
         correlation_matrix = data_df.corr()
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)
-        title_str = "Feature Correlation Matrix"
-        filename_base = "feature_correlation_matrix"
-        if eda_name_suffix:
-            title_str += f" ({eda_name_suffix})"
-            filename_base += f"_{eda_name_suffix}"
         
-        plt.title(title_str)
-        plot_path = os.path.join(output_plot_dir, f"{filename_base}.png")
-        plt.savefig(plot_path)
+        title, filename = get_names("Matriz_de_Correlacion_de_Caracteristicas", eda_name_suffix)
+        plt.title(title, fontsize=18)
+        
+        plot_path = os.path.join(output_plot_dir, filename)
+        plt.savefig(plot_path, bbox_inches='tight')
         plt.close()
-        print(f"    Saved: {plot_path}")
+        print(f"    Guardado: {plot_path}")
 
-    # Example 2: Distribution of the target variable
+    # 2. Target Variable Distribution (remains a single plot)
     if not target_series.empty:
         plt.figure(figsize=(8, 6))
         sns.histplot(target_series, kde=True)
-        title_str = "Target Variable Distribution"
-        filename_base = "target_distribution"
-        if eda_name_suffix: # Suffix also applies if EDA is on training target
-            title_str += f" ({eda_name_suffix})" # Though usually target dist is on y_orig
-            filename_base += f"_{eda_name_suffix}"
-
-        plt.title(title_str)
-        plot_path = os.path.join(output_plot_dir, f"{filename_base}.png")
-        plt.savefig(plot_path)
+        
+        title, filename = get_names("Distribucion_del_Target", eda_name_suffix)
+        plt.title(title, fontsize=16)
+        
+        plot_path = os.path.join(output_plot_dir, filename)
+        plt.savefig(plot_path, bbox_inches='tight')
         plt.close()
-        print(f"    Saved: {plot_path}")
+        print(f"    Guardado: {plot_path}")
 
-    # Example 3: Scatter plots of some features against the target
-    # Ensure data_df and target_series can be combined (e.g., have compatible indices if needed)
-    # For simplicity, let's pick a few features if available
+    # 3. Histograms of all features in one figure
+    if not data_df.empty:
+        print("  Generando figura combinada de histogramas...")
+        features = data_df.columns
+        num_features = len(features)
+        
+        # Define grid layout
+        n_cols = 4  
+        n_rows = math.ceil(num_features / n_cols)
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 5, n_rows * 4))
+        axes = axes.flatten() # Flatten to 1D array for easy iteration
+
+        for i, feature in enumerate(features):
+            sns.histplot(data_df[feature], kde=True, ax=axes[i])
+            axes[i].set_title(f'Distribución de {feature}', fontsize=12)
+            axes[i].set_xlabel('')
+            axes[i].set_ylabel('')
+
+        # Hide unused subplots
+        for i in range(num_features, len(axes)):
+            axes[i].set_visible(False)
+
+        main_title, filename = get_names("Histogramas_de_Caracteristicas", eda_name_suffix)
+        fig.suptitle(main_title, fontsize=20)
+        
+        plt.tight_layout(rect=[0, 0, 1, 0.96]) # Adjust layout to make room for suptitle
+        plot_path = os.path.join(output_plot_dir, filename)
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"    Guardado: {plot_path}")
+
+    # 4. Scatter plots of all features vs. target in one figure
     if not data_df.empty and not target_series.empty:
-        # Make sure indices align if they come from different train/test splits potentially
-        # This example assumes they are aligned or data_df is from X_orig when target_series is y_orig
-        temp_df_for_scatter = data_df.copy()
-        temp_df_for_scatter['target'] = target_series.values # Ensure alignment
+        print("  Generando figura combinada de gráficos de dispersión...")
+        features = data_df.columns
+        num_features = len(features)
+        
+        # Define grid layout
+        n_cols = 4
+        n_rows = math.ceil(num_features / n_cols)
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 5, n_rows * 4))
+        axes = axes.flatten()
 
-        features_to_plot = data_df.columns[:min(3, len(data_df.columns))] # Plot first 3 features
-        for feature in features_to_plot:
-            plt.figure(figsize=(8, 6))
-            sns.scatterplot(x=temp_df_for_scatter[feature], y=temp_df_for_scatter['target'])
-            title_str = f"{feature} vs. Target"
-            filename_base = f"scatter_{feature}_vs_target"
-            if eda_name_suffix:
-                title_str += f" ({eda_name_suffix})"
-                filename_base += f"_{eda_name_suffix}"
-            
-            plt.title(title_str)
-            plot_path = os.path.join(output_plot_dir, f"{filename_base}.png")
-            plt.savefig(plot_path)
-            plt.close()
-            print(f"    Saved: {plot_path}")
+        for i, feature in enumerate(features):
+            sns.scatterplot(x=data_df[feature], y=target_series, ax=axes[i], alpha=0.5)
+            axes[i].set_title(f'{feature} vs. Target', fontsize=12)
+            axes[i].set_xlabel('')
+            axes[i].set_ylabel('')
 
-    print(f"  EDA for {eda_name_suffix if eda_name_suffix else 'dataset'} completed.")
+        # Hide unused subplots
+        for i in range(num_features, len(axes)):
+            axes[i].set_visible(False)
+        
+        main_title, filename = get_names("Caracteristicas_vs_Target", eda_name_suffix)
+        fig.suptitle(main_title, fontsize=20)
+        
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        plot_path = os.path.join(output_plot_dir, filename)
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        print(f"    Guardado: {plot_path}")
+
+    print(f"  EDA para {eda_name_suffix if eda_name_suffix else 'el dataset'} completado.")

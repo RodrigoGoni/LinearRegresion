@@ -82,11 +82,10 @@ def train_lasso_regression(X_train, y_train):
             - final_lasso_model (Lasso): The trained Lasso model with the best alpha.
             - cv_results (dict): Results from GridSearchCV.
     """
-    # Alpha range for Lasso often needs to be smaller than Ridge, especially for feature selection
-    # Start from a very small non-zero value to avoid issues with alpha=0 in Lasso
-    alpha_range = np.linspace(0.0001, 1, 100) # Common range for Lasso
+
+    alpha_range = np.linspace(0.0001, 1, 100) 
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    lasso = Lasso(max_iter=10000) # Increase max_iter for convergence for some datasets
+    lasso = Lasso(max_iter=10000)
 
     grid_search = GridSearchCV(
         estimator=lasso,
@@ -94,7 +93,7 @@ def train_lasso_regression(X_train, y_train):
         cv=kf,
         scoring='neg_mean_squared_error',
         n_jobs=-1,
-        verbose=0 # Set to 0 to reduce verbosity during fitting
+        verbose=0 
     )
 
     print("Starting GridSearchCV for Lasso Regression...")
